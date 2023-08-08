@@ -5,7 +5,8 @@ import argparse
 import warnings
 import tempfile
 from .utils import filename, str2bool, write_srt
-
+from kizano import getLogger
+log = getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -16,11 +17,11 @@ def main():
                         choices=whisper.available_models(), help="name of the Whisper model to use")
     parser.add_argument("--output_dir", "-o", type=str,
                         default=".", help="directory to save the outputs")
-    parser.add_argument("--output_srt", type=str2bool, default=False,
+    parser.add_argument("--output_srt", action='store_true', default=False,
                         help="whether to output the .srt file along with the video files")
-    parser.add_argument("--srt_only", type=str2bool, default=False,
+    parser.add_argument("--srt_only", action='store_true', default=False,
                         help="only generate the .srt file and not create overlayed video")
-    parser.add_argument("--verbose", type=str2bool, default=False,
+    parser.add_argument("--verbose", action='store_true', default=False,
                         help="whether to print out the progress and debug messages")
 
     parser.add_argument("--task", type=str, default="transcribe", choices=[
@@ -34,7 +35,8 @@ def main():
     output_srt: bool = args.pop("output_srt")
     srt_only: bool = args.pop("srt_only")
     language: str = args.pop("language")
-    
+    args['word_timestamps'] = True
+
     os.makedirs(output_dir, exist_ok=True)
 
     if model_name.endswith(".en"):
@@ -103,6 +105,7 @@ def get_subtitles(audio_paths: list, output_srt: bool, output_dir: str, transcri
         result = transcribe(audio_path)
         warnings.filterwarnings("default")
 
+        log.info(f'Writing results to {srt_path}')
         with open(srt_path, "w", encoding="utf-8") as srt:
             write_srt(result["segments"], file=srt)
 

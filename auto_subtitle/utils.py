@@ -1,6 +1,7 @@
 import os
 from typing import Iterator, TextIO
-
+from kizano import getLogger
+log = getLogger(__name__)
 
 def str2bool(string):
     string = string.lower()
@@ -31,15 +32,25 @@ def format_timestamp(seconds: float, always_include_hours: bool = False):
 
 
 def write_srt(transcript: Iterator[dict], file: TextIO):
-    for i, segment in enumerate(transcript, start=1):
-        print(
-            f"{i}\n"
-            f"{format_timestamp(segment['start'], always_include_hours=True)} --> "
-            f"{format_timestamp(segment['end'], always_include_hours=True)}\n"
-            f"{segment['text'].strip().replace('-->', '->')}\n",
-            file=file,
-            flush=True,
-        )
+    i = 1
+    srt_tpl = '%d\n%s --> %s\n%s\n\n'
+    for segment in transcript:
+        # log.debug(segment)
+        buffer = []
+        for word in segment['words']:
+            buffer.append(word)
+            text = ''.join([ x['word'] for x in buffer ]).strip().replace('-->', '->')
+            charlen = len(text)
+            stime = format_timestamp(buffer[0]['start'], always_include_hours=True)
+            etime = format_timestamp(buffer[-1]['end'], always_include_hours=True)
+            if len(buffer) > 5 or charlen > 32:
+                file.write( srt_tpl % ( i, stime, etime, text ) )
+                i += 1
+                buffer = []
+        if len(buffer) > 0:
+            file.write( srt_tpl % ( i, stime, etime, text ) )
+            i += 1
+    file.flush()
 
 
 def filename(path):
